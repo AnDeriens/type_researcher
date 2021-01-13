@@ -75,7 +75,7 @@ class Reporter
         echo "| value | result |\n";
         echo "| --- | --- |\n";
         for ($i = self::NUM_START; $i < $this->num; $i++) {
-            echo '| ' .  trim($this->values[$i]) . ' | ' . trim($this->results[$i]) . " |\n";
+            echo '| ' .  str_replace("\n", "", $this->values[$i]) . ' | ' . trim($this->results[$i]) . " |\n";
         }
     }
 }
@@ -83,23 +83,22 @@ class Reporter
 $reporter = new Reporter();
 
 $reporter->addCase("Cast::int", NULL);
+$reporter->addCase("Cast::int", 0);
+$reporter->addCase("Cast::int", 1);
+$reporter->addCase("Cast::int", '');
+$reporter->addCase("Cast::int", '0');
+$reporter->addCase("Cast::int", '1');
+$reporter->addCase("Cast::int", 'a');
+$reporter->addCase("Cast::int", true);
+$reporter->addCase("Cast::int", false);
+$reporter->addCase("Cast::int", 0.1);
+$reporter->addCase("Cast::int", []);
+$reporter->addCase("Cast::int", ['a']);
+$reporter->addCase("Cast::int", ['a', 'b']);
+$reporter->addCase("Cast::int", [1, 2]);
+$reporter->addCase("Cast::int", new stdClass());
+$reporter->addCase("Cast::int", new stdClass(['a' => 'a']));
+$reporter->addCase("Cast::int", function () {return true;});
 
 $reporter->report();
 
-// to_int(NULL);
-// to_int(0);
-// to_int(1);
-// to_int('');
-// to_int('0');
-// to_int('1');
-// to_int('a');
-// to_int(true);
-// to_int(false);
-// to_int(0.1);
-// to_int([]);
-// to_int(['a']);
-// to_int(['a', 'b']);
-// to_int([1, 2]);
-// to_int(new stdClass());
-// to_int(new stdClass(['a' => 'a']));
-// to_int(function () {return true;});
