@@ -2,11 +2,29 @@
 ini_set("display_errors", 0);
 ini_set("display_startup_errors", 0);
 ini_set('error_reporting', E_ALL);
+define("E_FATAL", 16384 * 2);
 set_error_handler(function($errno, $errstr, $errfile, $errline){
     throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
 });
 
 require_once('./research_supporter.php');
+require_once('./reporter.php');
+require_once('./executer.php');
+
+class FatalErrorException extends \Exception
+{
+    public function __construct(string $message = "" , int $code = 0 , Throwable $previous = null)
+    {
+        if ($message === "") {
+            $message = "fatal error exception";
+        }
+        if ($code === 0) {
+            $code = 1024;
+        }
+        
+        parent::__construct($message, $code, $previous);
+    }
+}
 
 class Cast
 {
@@ -14,91 +32,73 @@ class Cast
     {
         return (int)$v;    
     }
-}
 
-class Executer
-{
-    protected $exception_handler;
-
-    public function __construct()
+    public static function string($v)
     {
-        $this->exception_handler = new ExceptionHandler(); 
-    }
-
-    public function execute($func, $value): string
-    {
-        return $this->handle_function_error($func, $value);
-    }
-
-    protected function handle_function_error(string $func, $value): string
-    {
-        ob_start();
-        try {
-            $r = call_user_func($func, $value);
-            var_dump($r);
-        } catch (\Exception $e) {
-            echo $this->exception_handler->handle($e);
+        if ($v instanceof stdClass) {
+//            throw new FatalErrorException("Object of class stdClass could not be converted to string"); 
+            return "[Fatal Error]Object of class stdClass could not be converted to string"; 
         }
-        return ob_get_clean();
-    }
-}
 
-class Reporter
-{
-    const NUM_START = 0;
-
-    protected $executer;
-    protected $values;
-    protected $results;
-    protected $num;
-
-    public function __construct()
-    {
-        $this->executer = new Executer; 
-        $this->num = self::NUM_START;
-    }
-
-    protected function increment()
-    {
-        $this->num++; 
-    }
-
-    public function addCase($method, $value)
-    {
-        $this->values[$this->num] = var_export($value, true);
-        $this->results[$this->num] = $this->executer->execute($method, $value);
-        $this->increment();
-    }
-
-    public function report()
-    {
-        echo "| value | result |\n";
-        echo "| --- | --- |\n";
-        for ($i = self::NUM_START; $i < $this->num; $i++) {
-            echo '| ' .  str_replace("\n", "", $this->values[$i]) . ' | ' . trim($this->results[$i]) . " |\n";
+        if (is_object($v)) {
+            return "[Fatal Error]Object of class Closure could not be converted to string ";
         }
+        return (string)$v; 
+    }
+
+    public static function boolean($v)
+    {
+        return (boolean)$v;
+    }
+
+    public static function float($v)
+    {
+        return (float)$v;
+    }
+
+    public static function array($v)
+    {
+        return (array)$v; 
+    }
+
+    public static function object($v)
+    {
+        return (object)$v; 
     }
 }
 
-$reporter = new Reporter();
+// $casts = array_intersect(get_class_methods(Cast::class), ['object']);
+$casts = get_class_methods(Cast::class);
 
-$reporter->addCase("Cast::int", NULL);
-$reporter->addCase("Cast::int", 0);
-$reporter->addCase("Cast::int", 1);
-$reporter->addCase("Cast::int", '');
-$reporter->addCase("Cast::int", '0');
-$reporter->addCase("Cast::int", '1');
-$reporter->addCase("Cast::int", 'a');
-$reporter->addCase("Cast::int", true);
-$reporter->addCase("Cast::int", false);
-$reporter->addCase("Cast::int", 0.1);
-$reporter->addCase("Cast::int", []);
-$reporter->addCase("Cast::int", ['a']);
-$reporter->addCase("Cast::int", ['a', 'b']);
-$reporter->addCase("Cast::int", [1, 2]);
-$reporter->addCase("Cast::int", new stdClass());
-$reporter->addCase("Cast::int", new stdClass(['a' => 'a']));
-$reporter->addCase("Cast::int", function () {return true;});
 
-$reporter->report();
+function execute_test($cast)
+{
+    $reporter = new Reporter();
+    $reporter->setTitle($cast);
+
+    $reporter->addCase("Cast::$cast", NULL);
+    $reporter->addCase("Cast::$cast", 0);
+    $reporter->addCase("Cast::$cast", 1);
+    $reporter->addCase("Cast::$cast", '');
+    $reporter->addCase("Cast::$cast", '0');
+    $reporter->addCase("Cast::$cast", '1');
+    $reporter->addCase("Cast::$cast", 'a');
+    $reporter->addCase("Cast::$cast", true);
+    $reporter->addCase("Cast::$cast", false);
+    $reporter->addCase("Cast::$cast", 0.1);
+    $reporter->addCase("Cast::$cast", []);
+    $reporter->addCase("Cast::$cast", ['a']);
+    $reporter->addCase("Cast::$cast", ['a', 'b']);
+    $reporter->addCase("Cast::$cast", [1, 2]);
+    $reporter->addCase("Cast::$cast", new stdClass());
+    $object = new stdClass();
+    $object->a = "a";
+    $reporter->addCase("Cast::$cast", $object);
+    $reporter->addCase("Cast::$cast", function () {return true;});
+    $reporter->report();
+}
+
+foreach ($casts as $cast) {
+    execute_test($cast);    
+}
 

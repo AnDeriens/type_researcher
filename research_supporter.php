@@ -56,7 +56,7 @@ class ExceptionHandler
                     break;
             }
         } else {
-            throw $e; 
+            exit('Uncaught Error. ' . $e->getMessage());
         }
 
         return $result;
